@@ -1,8 +1,13 @@
 *.wav
 *.pt
 *.ckpt
-__pycache__/
-*.pyc
-wandb/
-.env
+
+venv/
+venv-wsl/
 data/raw/
+data/processed/
+wandb/
+*.pyc
+__pycache__/
+.env
+cv-dataset/
