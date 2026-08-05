@@ -11,3 +11,5 @@ wandb/
 __pycache__/
 .env
 cv-dataset/
+aligner/*.zip
+data/processed/mfa_alignments/
