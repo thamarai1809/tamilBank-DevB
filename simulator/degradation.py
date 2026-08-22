@@ -155,7 +155,26 @@ def add_room_and_bandlimit(audio, sr, room_size=(5, 4, 3), band_low=300, band_hi
         bandlimited = bandlimited / max_val
     
     return bandlimited.astype(np.float32)
+def apply_severity(audio, sr, level="mild"):
+    """
+    Applies all 5 degradation components together at a given severity level.
+    level: "mild", "moderate", "severe", or "profound"
+    """
+    params = {
+        "mild":     {"jitter": 0.01,  "shimmer": 0.05, "breathy_noise": 0.02, "breathy_tilt": 0.2,  "formant": 0.2, "f0_comp": 0.3,  "rate": 0.95},
+        "moderate": {"jitter": 0.02,  "shimmer": 0.08, "breathy_noise": 0.03, "breathy_tilt": 0.3,  "formant": 0.4, "f0_comp": 0.5,  "rate": 0.85},
+        "severe":   {"jitter": 0.035, "shimmer": 0.12, "breathy_noise": 0.05, "breathy_tilt": 0.45, "formant": 0.6, "f0_comp": 0.65, "rate": 0.75},
+        "profound": {"jitter": 0.05,  "shimmer": 0.18, "breathy_noise": 0.08, "breathy_tilt": 0.6,  "formant": 0.8, "f0_comp": 0.8,  "rate": 0.6},
+    }
+    p = params[level]
 
+    out = add_jitter_shimmer(audio, sr, jitter_factor=p["jitter"], shimmer_factor=p["shimmer"])
+    out = add_breathiness(out, sr, noise_level=p["breathy_noise"], tilt_strength=p["breathy_tilt"])
+    out = add_formant_smoothing(out, sr, smoothing_strength=p["formant"])
+    out = add_reduced_f0_and_slowing(out, sr, f0_compression=p["f0_comp"], rate_factor=p["rate"])
+    out = add_room_and_bandlimit(out, sr)
+
+    return out
 if __name__ == "__main__":
     test_file = "data/processed/mfa_corpus/female/female_0000.wav"
     audio, sr = librosa.load(test_file, sr=None)
@@ -177,3 +196,8 @@ if __name__ == "__main__":
     
     print(f"Original duration: {len(audio)/sr:.2f}s")
     print("Saved all 5 degradation component test files to results/")
+    # Test all 4 severity presets
+    for level in ["mild", "moderate", "severe", "profound"]:
+        degraded = apply_severity(audio, sr, level=level)
+        sf.write(f"results/test_severity_{level}.wav", degraded, sr)
+        print(f"Saved severity preset: {level}")
