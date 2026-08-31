@@ -161,10 +161,10 @@ def apply_severity(audio, sr, level="mild"):
     level: "mild", "moderate", "severe", or "profound"
     """
     params = {
-        "mild":     {"jitter": 0.01,  "shimmer": 0.05, "breathy_noise": 0.02, "breathy_tilt": 0.2,  "formant": 0.2, "f0_comp": 0.3,  "rate": 0.95},
-        "moderate": {"jitter": 0.02,  "shimmer": 0.08, "breathy_noise": 0.03, "breathy_tilt": 0.3,  "formant": 0.4, "f0_comp": 0.5,  "rate": 0.85},
-        "severe":   {"jitter": 0.035, "shimmer": 0.12, "breathy_noise": 0.05, "breathy_tilt": 0.45, "formant": 0.6, "f0_comp": 0.65, "rate": 0.75},
-        "profound": {"jitter": 0.05,  "shimmer": 0.18, "breathy_noise": 0.08, "breathy_tilt": 0.6,  "formant": 0.8, "f0_comp": 0.8,  "rate": 0.6},
+        "mild":     {"jitter": 0.008,  "shimmer": 0.03, "breathy_noise": 0.005, "breathy_tilt": 0.08,  "formant": 0.1, "f0_comp": 0.15,  "rate": 0.97},
+        "moderate": {"jitter": 0.015,  "shimmer": 0.05, "breathy_noise": 0.01, "breathy_tilt": 0.15,  "formant": 0.25, "f0_comp": 0.3,  "rate": 0.92},
+        "severe":   {"jitter": 0.025, "shimmer": 0.08, "breathy_noise": 0.02, "breathy_tilt": 0.25, "formant": 0.4, "f0_comp": 0.45, "rate": 0.85},
+        "profound": {"jitter": 0.04,  "shimmer": 0.12, "breathy_noise": 0.035, "breathy_tilt": 0.35,  "formant": 0.55, "f0_comp": 0.6,  "rate": 0.75},
     }
     p = params[level]
 
@@ -173,6 +173,8 @@ def apply_severity(audio, sr, level="mild"):
     out = add_formant_smoothing(out, sr, smoothing_strength=p["formant"])
     out = add_reduced_f0_and_slowing(out, sr, f0_compression=p["f0_comp"], rate_factor=p["rate"])
     out = add_room_and_bandlimit(out, sr)
+    if level in ["severe", "profound"]:
+        out = add_room_and_bandlimit(out, sr)
 
     return out
 if __name__ == "__main__":

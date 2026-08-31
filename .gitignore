@@ -13,3 +13,5 @@ __pycache__/
 cv-dataset/
 aligner/*.zip
 data/processed/mfa_alignments/
+dysarthria-detection.zip
+data/raw/torgo/
