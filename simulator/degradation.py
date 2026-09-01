@@ -121,12 +121,10 @@ def add_reduced_f0_and_slowing(audio, sr, f0_compression=0.5, rate_factor=0.85):
     # Using pitch_shift as an approximation isn't quite right for "compression",
     # so we use a simple approach: extract pitch, compress deviations from mean, resynthesize is complex;
     # here we approximate via a mild constant pitch shift down + reduced modulation via harmonic-percussive smoothing
-    harmonic, percussive = librosa.effects.hpss(slowed)
-    output = f0_compression * harmonic + (1 - f0_compression * 0.3) * percussive + (slowed - harmonic - percussive) * 0
-    output = slowed * (1 - f0_compression * 0.1) + harmonic * (f0_compression * 0.1)  # subtle flattening blend
+    harmonic, percussive = librosa.effects.hpss(slowed, margin=3.0)
+    output = slowed * (1 - f0_compression * 0.15) + harmonic * (f0_compression * 0.15)
     
     return output.astype(np.float32)
-
 def add_room_and_bandlimit(audio, sr, room_size=(5, 4, 3), band_low=300, band_high=3400):
     """
     Simulates room acoustics (reverb) and band-limiting (e.g., phone-quality recording),
