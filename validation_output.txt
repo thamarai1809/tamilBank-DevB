@@ -1,0 +1,66 @@
+/home/thamarai/miniconda3/envs/aligner/lib/python3.14/site-packages/librosa/effects.py:448: FutureWarning: The `hop_length` parameter is deprecated as of 1.0 and will be removed in 1.1. It is unused in the current implementation.
+  stft_stretch = core.phase_vocoder(
+/home/thamarai/miniconda3/envs/aligner/lib/python3.14/site-packages/librosa/effects.py:448: FutureWarning: The `n_fft` parameter is deprecated as of 1.0 and will be removed in 1.1. It is unused in the current implementation.
+  stft_stretch = core.phase_vocoder(
+Found 1000 real dysarthric TORGO files
+Found 1000 real healthy TORGO files
+
+=== ACOUSTIC MEASURE COMPARISON (TORGO baseline) ===
+  Skipped data/raw/torgo/torgo_data/dysarthria_male/M05_Session2_0346.wav: To analyse this Sound, “minimum pitch” must not be less than 119.40298507462686 Hz.
+Sound "untitled": pitch analysis not performed.
+Sound "untitled": harmonicity analysis (cc) not performed.
+  Skipped data/raw/torgo/torgo_data/dysarthria_male/M05_Session2_0344.wav: To analyse this Sound, “minimum pitch” must not be less than 105.96026490066225 Hz.
+Sound "untitled": pitch analysis not performed.
+Sound "untitled": harmonicity analysis (cc) not performed.
+  Skipped data/raw/torgo/torgo_data/dysarthria_female/F01_Session1_0068.wav: Not an audio file.
+Sound not read from sound file “/home/thamarai/tamilbank-devB/data/raw/torgo/torgo_data/dysarthria_female/F01_Session1_0068.wav”.
+  Skipped data/raw/torgo/torgo_data/dysarthria_male/M05_Session2_0351.wav: Sound "untitled": shorter than window length.
+The pitch analysis would give zero pitch frames.
+Sound "untitled": pitch analysis not performed.
+Sound "untitled": harmonicity analysis (cc) not performed.
+
+--- Real TORGO Dysarthric Speech (n=100) ---
+hnr: mean=13.6436, std=6.3492
+jitter: mean=0.0254, std=0.0249
+shimmer: mean=0.0790, std=0.0414
+
+--- Real TORGO Healthy Speech (n=100) ---
+hnr: mean=11.4092, std=3.6634
+jitter: mean=0.0257, std=0.0108
+shimmer: mean=0.0922, std=0.0348
+
+=== SIMULATOR SEVERITY PRESETS (5 seeds each) ===
+
+--- Your Simulator (mild preset, n=5 seeds) ---
+hnr: mean=6.6437, std=0.1276
+jitter: mean=0.0317, std=0.0007
+shimmer: mean=0.1799, std=0.0056
+
+--- Your Simulator (moderate preset, n=5 seeds) ---
+hnr: mean=6.4841, std=0.1575
+jitter: mean=0.0340, std=0.0018
+shimmer: mean=0.1772, std=0.0052
+
+--- Your Simulator (severe preset, n=5 seeds) ---
+hnr: mean=5.1019, std=0.4752
+jitter: mean=0.0350, std=0.0029
+shimmer: mean=0.1842, std=0.0048
+
+--- Your Simulator (profound preset, n=5 seeds) ---
+hnr: mean=4.0601, std=0.2739
+jitter: mean=0.0367, std=0.0015
+shimmer: mean=0.1896, std=0.0066
+
+Found 21 real TamilBank corpus files in data/processed/real_corpus
+
+=== REAL TAMILBANK CORPUS vs TORGO-CALIBRATED SIMULATOR ===
+
+--- Real TamilBank Speakers - Part A (formal) (n=11) ---
+hnr: mean=9.4309, std=4.4253
+jitter: mean=0.0268, std=0.0075
+shimmer: mean=0.1408, std=0.0357
+
+--- Real TamilBank Speakers - Part B (casual) (n=10) ---
+hnr: mean=9.4149, std=3.8317
+jitter: mean=0.0259, std=0.0089
+shimmer: mean=0.1385, std=0.0402

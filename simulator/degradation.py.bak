@@ -1,32 +1,48 @@
 import numpy as np
-
 import librosa
 import soundfile as sf
 
 
-def add_jitter_shimmer(audio, sr, jitter_factor=0.01, shimmer_factor=0.05, seed=None):
-    rng = np.random.default_rng(seed)
-    frame_length = int(sr * 0.01)
+def add_jitter_shimmer(audio, sr, jitter_factor=0.01, shimmer_factor=0.05):
+    """
+    Simulates cycle-to-cycle pitch (jitter) and amplitude (shimmer) perturbation,
+    characteristic of dysarthric/impaired speech.
+
+    Both are applied as smooth, continuously-interpolated per-sample variation
+    (not hard block-wise jumps) to avoid introducing click/discontinuity artifacts
+    at frame boundaries, which previously registered as spurious broadband noise
+    and inflated measured shimmer/HNR far beyond the intended factor.
+
+    jitter_factor: proportion of random pitch/timing variation (0.01 = mild, 0.05 = severe)
+    shimmer_factor: proportion of random amplitude variation (0.05 = mild, 0.15 = severe)
+    """
+    frame_length = int(sr * 0.01)  # 10ms frames, roughly one pitch period at typical F0
     num_frames = len(audio) // frame_length + 1
+
     sample_points = np.arange(len(audio))
     frame_points = np.arange(num_frames + 1) * frame_length
 
-    frame_scales = 1.0 + rng.uniform(-shimmer_factor, shimmer_factor, num_frames + 1)
+    # --- Shimmer: smooth per-sample amplitude scaling ---
+    frame_scales = 1.0 + np.random.uniform(-shimmer_factor, shimmer_factor, num_frames + 1)
     smooth_scale = np.interp(sample_points, frame_points, frame_scales)
 
+    # --- Jitter: smooth per-sample timing warp (replaces hard block splicing) ---
     max_shift_samples = frame_length * jitter_factor
-    frame_shifts = rng.uniform(-max_shift_samples, max_shift_samples, num_frames + 1)
+    frame_shifts = np.random.uniform(-max_shift_samples, max_shift_samples, num_frames + 1)
     smooth_shift = np.interp(sample_points, frame_points, frame_shifts)
     warped_positions = np.clip(sample_points + smooth_shift, 0, len(audio) - 1)
     jittered = np.interp(warped_positions, sample_points, audio.astype(np.float64))
 
     output = jittered * smooth_scale
+
+    # Normalize to prevent clipping
     max_val = np.max(np.abs(output))
     if max_val > 1.0:
         output = output / max_val
     return output.astype(np.float32)
 
-def add_breathiness(audio, sr, noise_level=0.02, tilt_strength=0.3,seed=None):
+
+def add_breathiness(audio, sr, noise_level=0.02, tilt_strength=0.3):
     """
     Simulates breathy voice quality via spectral tilt + aspiration noise,
     characteristic of weak vocal fold closure in impaired speech.
@@ -35,9 +51,8 @@ def add_breathiness(audio, sr, noise_level=0.02, tilt_strength=0.3,seed=None):
     """
     from scipy.signal import butter, filtfilt
 
-    rng = np.random.default_rng(seed)
-# Generate aspiration noise (high-frequency weighted noise)
-    noise = rng.normal(0, 1, len(audio))
+    # Generate aspiration noise (high-frequency weighted noise)
+    noise = np.random.normal(0, 1, len(audio))
 
     # High-pass filter the noise to concentrate it in higher frequencies (breath-like)
     b, a = butter(4, 1500 / (sr / 2), btype='high')
@@ -108,18 +123,16 @@ def add_reduced_f0_and_slowing(audio, sr, f0_compression=0.5, rate_factor=0.85):
     return output.astype(np.float32)
 
 
-def add_room_and_bandlimit(audio, sr, room_size=(5, 4, 3), absorption=0.3, band_low=100, band_high=7000):
+def add_room_and_bandlimit(audio, sr, room_size=(5, 4, 3), band_low=300, band_high=3400):
     """
-    Simulates room acoustics (reverb) and band-limiting.
-    absorption: 0-1, higher = less reverberant (more absorptive room)
-    band_low/band_high: passband in Hz. Wider band = closer to full-bandwidth clean
-    speech; narrower band = more degraded, phone-like quality. Should scale with
-    severity rather than staying fixed.
+    Simulates room acoustics (reverb) and band-limiting (e.g., phone-quality recording),
+    characteristic of real-world recording conditions rather than clean studio audio.
     """
     import pyroomacoustics as pra
     from scipy.signal import butter, filtfilt
 
-    room = pra.ShoeBox(room_size, fs=sr, max_order=10, materials=pra.Material(absorption))
+    # Create a simple shoebox room and simulate RIR
+    room = pra.ShoeBox(room_size, fs=sr, max_order=10, materials=pra.Material(0.3))
     room.add_source([1, 1, 1], signal=audio)
     room.add_microphone([2, 2, 1])
     room.simulate()
@@ -127,28 +140,31 @@ def add_room_and_bandlimit(audio, sr, room_size=(5, 4, 3), absorption=0.3, band_
     if len(reverbed) < len(audio):
         reverbed = np.pad(reverbed, (0, len(audio) - len(reverbed)))
 
+    # Band-limit (simulate telephone/low-quality mic bandwidth)
     b, a = butter(4, [band_low / (sr / 2), band_high / (sr / 2)], btype='band')
     bandlimited = filtfilt(b, a, reverbed)
 
+    # Normalize
     max_val = np.max(np.abs(bandlimited))
     if max_val > 1.0:
         bandlimited = bandlimited / max_val
     return bandlimited.astype(np.float32)
 
-def apply_severity(audio, sr, level="mild",seed=42):
+
+def apply_severity(audio, sr, level="mild"):
     """
     Applies all 5 degradation components together at a given severity level.
     level: "mild", "moderate", "severe", or "profound"
     """
     params = {
-    "mild":     {"jitter": 0.008, "shimmer": 0.025, "breathy_noise": 0.005, "breathy_tilt": 0.08,  "formant": 0.1,  "f0_comp": 0.15, "rate": 0.97, "absorption": 0.75, "band_low": 50,  "band_high": 7900},
-    "moderate": {"jitter": 0.015, "shimmer": 0.04,  "breathy_noise": 0.01,  "breathy_tilt": 0.15,  "formant": 0.25, "f0_comp": 0.3,  "rate": 0.92, "absorption": 0.55, "band_low": 120, "band_high": 6800},
-    "severe":   {"jitter": 0.025, "shimmer": 0.065, "breathy_noise": 0.02,  "breathy_tilt": 0.25,  "formant": 0.4,  "f0_comp": 0.45, "rate": 0.85, "absorption": 0.4,  "band_low": 200, "band_high": 5000},
-    "profound": {"jitter": 0.04,  "shimmer": 0.1,   "breathy_noise": 0.035, "breathy_tilt": 0.35,  "formant": 0.55, "f0_comp": 0.6,  "rate": 0.75, "absorption": 0.3,  "band_low": 300, "band_high": 3400},
-}
+        "mild":     {"jitter": 0.008, "shimmer": 0.03, "breathy_noise": 0.005, "breathy_tilt": 0.08,  "formant": 0.1,  "f0_comp": 0.15, "rate": 0.97},
+        "moderate": {"jitter": 0.015, "shimmer": 0.05, "breathy_noise": 0.01,  "breathy_tilt": 0.15,  "formant": 0.25, "f0_comp": 0.3,  "rate": 0.92},
+        "severe":   {"jitter": 0.025, "shimmer": 0.08, "breathy_noise": 0.02,  "breathy_tilt": 0.25,  "formant": 0.4,  "f0_comp": 0.45, "rate": 0.85},
+        "profound": {"jitter": 0.04,  "shimmer": 0.12, "breathy_noise": 0.035, "breathy_tilt": 0.35,  "formant": 0.55, "f0_comp": 0.6,  "rate": 0.75},
+    }
     p = params[level]
-    out = add_jitter_shimmer(audio, sr, jitter_factor=p["jitter"], shimmer_factor=p["shimmer"],seed=seed)
-    out = add_breathiness(out, sr, noise_level=p["breathy_noise"], tilt_strength=p["breathy_tilt"],seed=seed)
+    out = add_jitter_shimmer(audio, sr, jitter_factor=p["jitter"], shimmer_factor=p["shimmer"])
+    out = add_breathiness(out, sr, noise_level=p["breathy_noise"], tilt_strength=p["breathy_tilt"])
     out = add_formant_smoothing(out, sr, smoothing_strength=p["formant"])
     out = add_reduced_f0_and_slowing(out, sr, f0_compression=p["f0_comp"], rate_factor=p["rate"])
     out = add_room_and_bandlimit(out, sr)
@@ -185,3 +201,4 @@ if __name__ == "__main__":
         degraded = apply_severity(audio, sr, level=level)
         sf.write(f"results/test_severity_{level}.wav", degraded, sr)
         print(f"Saved severity preset: {level}")
+EOF

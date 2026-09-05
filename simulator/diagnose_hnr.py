@@ -15,7 +15,11 @@ def get_hnr(audio, sr):
     snd = parselmouth.Sound("results/temp_test.wav")
     harmonicity = call(snd, "To Harmonicity (cc)", 0.01, 75, 0.1, 1.0)
     return call(harmonicity, "Get mean", 0, 0)
-
+def get_shimmer(audio, sr):
+    sf.write("results/temp_test.wav", audio, sr)
+    snd = parselmouth.Sound("results/temp_test.wav")
+    point_process = call(snd, "To PointProcess (periodic, cc)", 75, 500)
+    return call([snd, point_process], "Get shimmer (local)", 0, 0, 0.0001, 0.02, 1.3, 1.6)
 audio, sr = librosa.load("data/processed/mfa_corpus/female/female_0000.wav", sr=None)
 
 print(f"Original HNR: {get_hnr(audio, sr):.4f}")
@@ -50,3 +54,29 @@ chained3 = add_jitter_shimmer(audio, sr, jitter_factor=0.008, shimmer_factor=0.0
 chained3 = add_breathiness(chained3, sr, noise_level=0.005, tilt_strength=0.08)
 chained3 = add_formant_smoothing(chained3, sr, smoothing_strength=0.1)
 print(f"After 3 (skip F0/rate): {get_hnr(chained3, sr):.4f}")
+step5 = add_room_and_bandlimit(chained, sr)
+print(f"After room/bandlimit added on top of mild chain: {get_hnr(step5, sr):.4f}")
+
+room_only = add_room_and_bandlimit(audio, sr)
+print(f"Room/bandlimit alone on clean audio: {get_hnr(room_only, sr):.4f}")
+print("\n--- Shimmer breakdown (mild settings) ---")
+print(f"Original shimmer: {get_shimmer(audio, sr):.4f}")
+
+s1 = add_jitter_shimmer(audio, sr, jitter_factor=0.008, shimmer_factor=0.025)
+print(f"After jitter/shimmer only: {get_shimmer(s1, sr):.4f}")
+
+s2 = add_breathiness(s1, sr, noise_level=0.005, tilt_strength=0.08)
+print(f"After + breathiness: {get_shimmer(s2, sr):.4f}")
+
+s3 = add_formant_smoothing(s2, sr, smoothing_strength=0.1)
+print(f"After + formant smoothing: {get_shimmer(s3, sr):.4f}")
+
+s5 = add_room_and_bandlimit(s3, sr, absorption=0.75, band_low=50, band_high=7900)
+print(f"After + room/bandlimit (mild settings): {get_shimmer(s5, sr):.4f}")
+
+print("\n--- HNR breakdown (same chain, mild settings) ---")
+print(f"Original HNR: {get_hnr(audio, sr):.4f}")
+print(f"After jitter/shimmer only: {get_hnr(s1, sr):.4f}")
+print(f"After + breathiness: {get_hnr(s2, sr):.4f}")
+print(f"After + formant smoothing: {get_hnr(s3, sr):.4f}")
+print(f"After + room/bandlimit (mild settings): {get_hnr(s5, sr):.4f}")
